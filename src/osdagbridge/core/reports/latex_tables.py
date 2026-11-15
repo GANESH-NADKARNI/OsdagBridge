@@ -81,5 +81,5 @@ def longtable(colspec, caption, header, body, note=None, *, repeat_header=None):
     parts.append(body)
     parts.append("\\end{longtable}")
     if note:
-        parts.append("\\noindent\\textit{" + note + "}")
+        parts.append("\\noindent\\textit{" + note + "}\\par\\vspace{0.6em}")
     return "\n".join(parts) + "\n"
