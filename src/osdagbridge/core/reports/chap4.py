@@ -6,6 +6,7 @@ from osdagbridge.core.utils.common import (
     KEY_SD_DEFL_TOTAL,
 )
 from osdagbridge.core.reports.report_utils import _tex, _fig_embed
+from osdagbridge.core.reports.latex_tables import longtable
 
 if TYPE_CHECKING:
     from .report_generator import ReportDataBridge
@@ -75,6 +76,29 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     _allow_total_str = f"L/600 = {_allow_total_mm:.1f} mm"
     _live_status     = ("PASS" if _live_mm  <= _allow_live_mm  else r"\textcolor{red}{FAIL}") if _live_mm  is not None else "---"
     _total_status    = ("PASS" if _total_mm <= _allow_total_mm else r"\textcolor{red}{FAIL}") if _total_mm is not None else "---"
+    # ── Table 4.2 -- Reactions at Supports ───────────────────────────────────
+    # Same source as Table 4.1 (rxn_summary), limited to the cases a designer
+    # needs for bearings: envelopes first, then the unfactored permanent loads.
+    _RXN_CASES = ["Envelope ULS", "Envelope SLS", "SW", "1.0 DL", "1.0 DW",
+                  "Crash barrier load", "Railing load", "Footpath load",
+                  "1.0 DL + 1.0 LL"]
+    _rxn_rows = [lc for lc in _RXN_CASES if lc in rxn_summary]
+    if not _rxn_rows:                       # unknown case names: fall back
+        _rxn_rows = list(rxn_summary.keys())[:8]
+    _rxn_body = "".join(
+        _tex(lc) + r" & " + _fmt(rxn_summary[lc].get('left_kN'), 2) + r" & "
+        + _fmt(rxn_summary[lc].get('right_kN'), 2) + " \\\\[6pt]\n\\hline\n"
+        for lc in _rxn_rows
+    ) or (r"--- & --- & --- \\[6pt]" + "\n\\hline\n")
+    _reactions_table = longtable(
+        r"|L{6.0cm}|C{4.0cm}|C{4.0cm}|",
+        "Reactions at Supports",
+        r"\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}",
+        _rxn_body,
+        note=r"Note: Reactions are taken from the grillage analysis (same source as "
+             r"Table 4.1); signs follow the analysis axis convention.",
+    )
+
     return r"""
 \chapter{Analysis Results}
 
@@ -141,25 +165,20 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \endgroup
 
 \vspace{1em}
-\begin{longtable}{|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|}
-\caption{\textbf{Reactions at Supports}}
-\hline
-\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)} \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
-\end{longtable}
+""" + _reactions_table + r"""
 
 \vspace{1em}
 \begin{longtable}{|L{7cm}|p{8.5cm}|}
-\caption{\textbf{Deflection Summary (Live Load \& Total Load)}}
+\caption{\textbf{Deflection Summary (Live Load \& Total Load)}}\\
 \hline
 \textbf{parameter} & \textbf{value} \\
 \hline
+\endfirsthead
+\caption*{\textbf{Table \thetable{} (continued): Deflection Summary (Live Load \& Total Load)}}\\
+\hline
+\textbf{parameter} & \textbf{value} \\
+\hline
+\endhead
 \textnormal{Deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[6pt]
 \hline
 \textnormal{Allowable Live Load Deflection ($\Delta_{allow}$)} & """ + _allow_live_str + r""" \\[6pt]
@@ -180,4 +199,3 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 """ + _fig_embed(fig_paths.get('sf_envelope'), 'Shear Force Envelope (Envelope ULS): Max/min SF along span. X-axis: distance from left support (m). Y-axis: Shear Force (kN).', width=r'0.75\textwidth') + r"""
 """ + _fig_embed(fig_paths.get('defl_ll'), 'Vertical Deflection D$_y$ (1.0 LL): Maximum deflection along span. Load Case: 1.0 LL, Combination: $D_y$. Nodes shown. Isometric view.', width=r'0.75\textwidth') + r"""
 """
-
