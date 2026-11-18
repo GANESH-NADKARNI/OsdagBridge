@@ -19,6 +19,8 @@ from osdagbridge.core.reports import styles
 
 # A row terminator is "\\" with an optional [length], at the END of a line.
 # "\\" inside \makecell{A\\B} is not followed by a newline, so it is left alone.
+MAX_SHORT_ROWS = 14   # above this, callers should use longtable() so the table can break
+
 _ROW_END = re.compile(r"\\\\(\[[^\]]*\])?(?=[ \t]*\r?\n)")
 
 
@@ -40,7 +42,12 @@ def keep_rows_together(block):
     out.append(block[last:])
     # \cline is its own alignment row followed by a \vskip, which is a legal
     # break point; \kcline (defined in the preamble) forbids it.
-    return re.sub(r"\\cline\{", lambda _m: "\\kcline{", "".join(out))
+    text = re.sub(r"\\cline\{", lambda _m: "\\kcline{", "".join(out))
+    # A rule (\hline) is followed by glue, another legal break point that \\*
+    # cannot reach: add a no-break penalty after every \hline that follows a
+    # starred row terminator.
+    return re.sub(r"(\\\\\*(?:\[[^\]]*\])?[ \t]*\r?\n\\hline)",
+                  lambda m: m.group(1) + "\\noalign{\\penalty10000}", text)
 
 
 def _header_row(header):
@@ -82,4 +89,31 @@ def longtable(colspec, caption, header, body, note=None, *, repeat_header=None):
     parts.append("\\end{longtable}")
     if note:
         parts.append("\\noindent\\textit{" + note + "}\\par\\vspace{0.6em}")
+    return "\n".join(parts) + "\n"
+
+
+def short_table(colspec, caption, header, body, note=None):
+    """A table that can never split across pages (use for short tables).
+
+    longtable paginates itself and ignores \\\\* / penalty hints between rows
+    that are separated by \\hline, so a few-row longtable can still be cut.
+    A tabular inside a minipage is one unbreakable box: if it does not fit on
+    the page it moves to the next page as a whole.  The caption is numbered
+    from the same counter as longtable captions.
+    """
+    gap = styles.TABLE["row_gap"]
+    parts = [
+        "\\par\\vspace{0.4em}\\noindent\\begin{minipage}{\\linewidth}",
+        "\\captionof{table}{\\textbf{" + caption + "}}",
+        "\\centering",
+        "\\begin{tabular}{" + colspec + "}",
+        "\\hline",
+        _header_row(header) + " \\\\[" + gap + "]",
+        "\\hline",
+        body.rstrip("\n"),
+        "\\end{tabular}",
+    ]
+    if note:   # inside the box, so the note can never be separated from its table
+        parts.append("\\par\\vspace{0.4em}\\raggedright\\textit{" + note + "}")
+    parts.append("\\end{minipage}\\par\\vspace{0.6em}")
     return "\n".join(parts) + "\n"

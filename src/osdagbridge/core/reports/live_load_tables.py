@@ -15,7 +15,7 @@ appear is decided by the caller from the Loading tab selection.
 from dataclasses import dataclass
 from typing import List, Optional
 
-from osdagbridge.core.reports.latex_tables import longtable
+from osdagbridge.core.reports.latex_tables import MAX_SHORT_ROWS, longtable, short_table
 from osdagbridge.core.reports.report_utils import _tex
 
 DASH = "--"
@@ -63,10 +63,14 @@ def vehicle_table(rows: List[VehicleRow], caption="Live Loads -- Vehicles") -> s
     else:
         body = (r"\multicolumn{6}{|c|}{\textit{No vehicle selected in the Loading tab}}"
                 " \\\\[6pt]\n\\hline\n")
-    note = (r"Note: Impact factor per IRC 6 Cl. 208.2 (Class A) and Cl. 208.3 "
-            r"(Class AA / 70R). Braking force per IRC 6 Cl. 211.2, acting "
-            r"longitudinally at the eccentricity shown above the deck surface.")
-    tbl = longtable(colspec, caption, header, body, note=note)
+    note = (r"Note: Total loads follow the IRC 6 vehicle definitions used in the analysis "
+            r"(1\,t = 9.81\,kN); Class AA uses the standard IRC 6 Cl.~204.1 loads. "
+            r"Impact factor per IRC 6 Cl.~208.2 / 208.3 for the vehicle type. "
+            r"Braking value = 20\,\% of the vehicle load (first train, one lane, IRC 6 Cl.~211.2), "
+            r"acting at the eccentricity shown above the deck surface. "
+            r"``--'': not applicable or not defined.")
+    build = short_table if len(rows) <= MAX_SHORT_ROWS else longtable
+    tbl = build(colspec, caption, header, body, note=note)
     return "\\begingroup\\setlength{\\tabcolsep}{4pt}\n" + tbl + "\\endgroup\n"
 
 
@@ -76,8 +80,8 @@ def footpath_table(footpath_option: str, width_m: Optional[float],
     """Footpath live-load table; a one-line note when no footpath is provided."""
     if str(footpath_option).strip().lower() in ("", "none"):
         return (r"\noindent\textit{No footpath is provided; footpath live load "
-                r"is not applicable.}\\par\\vspace{0.6em}" "\n")
-    colspec = r"|L{4.4cm}|C{2.3cm}|C{1.7cm}|L{3.4cm}|"
+                r"is not applicable.}\par\vspace{0.6em}" "\n")
+    colspec = r"|L{4.2cm}|C{2.8cm}|C{1.5cm}|L{3.4cm}|"
     header = (r"\textbf{Parameter} & \textbf{Value} & \textbf{Unit} & "
               r"\textbf{Source}")
     is_auto = str(mode).strip().lower() in ("automatic", "as per irc 6", "as per irc6")
@@ -90,4 +94,4 @@ def footpath_table(footpath_option: str, width_m: Optional[float],
          "IRC 6 Cl. 206.1" if is_auto else "User input"),
     ]
     body = "".join(f"{a} & {b} & {c} & {d} \\\\[6pt]\n\\hline\n" for a, b, c, d in rows)
-    return longtable(colspec, caption, header, body)
+    return short_table(colspec, caption, header, body)

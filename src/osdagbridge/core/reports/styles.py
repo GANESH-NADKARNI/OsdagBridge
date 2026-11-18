@@ -44,8 +44,10 @@ DOCUMENT = {
     "paper":        "a4paper",
     "margin":       "1in",
     "line_stretch": "1.15",
-    # extra geometry() options, e.g. {"footskip": "0.6in"}
-    "geometry_extra": {},
+    # extra geometry() options.  footskip 44pt (default 30pt) moves the footer down so the
+    # "* Software default value" note, which is drawn upward from the footer rule, no
+    # longer touches the last line of body text.  The text area is unchanged.
+    "geometry_extra": {"footskip": "44pt"},
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -62,6 +64,10 @@ TABLE = {
     # If fewer than this many baselines remain on the page, start the
     # table on a new page instead of orphaning its caption/first row.
     "needspace_lines": 5,
+    # \needspace before a longtable breaks it: the page break it forces is not
+    # yet visible to longtable, which then prints a stray "(continued)" head at
+    # the top of the new page.  Keep this False; longtable paginates itself.
+    "needspace_longtable": False,
     # Repeat column headers on every page of a multi-page table.
     "repeat_header":  True,
 }
@@ -154,8 +160,8 @@ def _table_layout():
 
 % Do not start a table in the last few lines of a page.
 \BeforeBeginEnvironment{table}{\needspace{""" + str(t["needspace_lines"]) + r"""\baselineskip}}
-\BeforeBeginEnvironment{longtable}{\needspace{""" + str(t["needspace_lines"]) + r"""\baselineskip}}
-"""
+""" + (r"""\BeforeBeginEnvironment{longtable}{\needspace{""" + str(t["needspace_lines"]) + r"""\baselineskip}}
+""" if t["needspace_longtable"] else "")
 
 
 def _colors():
