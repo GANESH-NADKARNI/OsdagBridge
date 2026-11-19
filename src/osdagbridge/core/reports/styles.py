@@ -68,6 +68,8 @@ TABLE = {
     # yet visible to longtable, which then prints a stray "(continued)" head at
     # the top of the new page.  Keep this False; longtable paginates itself.
     "needspace_longtable": False,
+    # Lines that must fit after a \section heading, else it moves to the next page.
+    "heading_needspace_lines": 10,
     # Repeat column headers on every page of a multi-page table.
     "repeat_header":  True,
 }
@@ -158,7 +160,24 @@ def _table_layout():
 \setlength{\arrayrulewidth}{""" + t["rule_width"] + r"""}
 \setlength{\extrarowheight}{""" + t["extrarowheight"] + r"""}
 
-% Do not start a table in the last few lines of a page.
+% \keepneed{len}: if less than len remains on the page, end the page NOW.
+% (needspace uses \break, which is applied lazily; a longtable that starts right
+%  after it then measures the old page and prints a stray "(continued)" head.
+%  \clearpage ships the page out immediately, so the table sees a fresh page.)
+\makeatletter
+\newcommand{\keepneed}[1]{\par\penalty-100\begingroup
+  \@tempdima=#1\relax \@tempdimb=\pagegoal \advance\@tempdimb-\pagetotal
+  \ifdim\@tempdima>\@tempdimb \clearpage \fi\endgroup}
+\makeatother
+
+% Keep a section heading together with the content that follows it, so a heading
+% is never left alone at the bottom of a page (0 disables).
+""" + (r"""\makeatletter
+\pretocmd{\section}{\keepneed{""" + str(t["heading_needspace_lines"]) + r"""\baselineskip}}{}{}
+\pretocmd{\subsection}{\keepneed{""" + str(t["heading_needspace_lines"] - 2) + r"""\baselineskip}}{}{}
+\makeatother
+""" if t["heading_needspace_lines"] else "") + r"""
+% Do not start a floating table in the last few lines of a page.
 \BeforeBeginEnvironment{table}{\needspace{""" + str(t["needspace_lines"]) + r"""\baselineskip}}
 """ + (r"""\BeforeBeginEnvironment{longtable}{\needspace{""" + str(t["needspace_lines"]) + r"""\baselineskip}}
 """ if t["needspace_longtable"] else "")

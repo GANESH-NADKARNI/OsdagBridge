@@ -125,6 +125,7 @@ from .chap2 import ch2_input_parameters
 from .chap3 import ch3_loads
 from .chap4 import ch4_analysis
 from .chap5 import ch5_design_checks
+from .report_charts import make_ur_charts
 from .chap6 import ch6_drawings
 from .chap7 import ch7_quantities
 from .chap8 import ch8_design_log
@@ -749,7 +750,8 @@ def generate_report(payload, request):
                     with open(p, 'wb') as fh:
                         fh.write(img_bytes)
                     fig_paths[attr] = p.replace('\\', '/')
-            payload.figure_data.clear()  # bytes no longer needed — free RAM now
+            payload.figure_data.clear()  # bytes no longer needed — free RAM now        
+            fig_paths['chart_dir'] = tmp_images # Charts drawn by the report itself (Section 5.5)
 
             # ── Write title-page logos into tmp_dir/assets (auto-deleted) ──
             # Nothing is left next to the PDF. Latex paths are relative to tmp_dir.
@@ -799,7 +801,7 @@ def generate_report(payload, request):
             if 'analysis' in secs:
                 doc_parts.append(ch4_analysis(payload.analysis_summary, fig_paths, bridge, span_m))
             if 'design_checks' in secs:
-                doc_parts.append(ch5_design_checks(payload.design_checks, bridge))
+                doc_parts.append(ch5_design_checks(payload.design_checks, bridge, fig_paths))
             if 'drawings' in secs and payload.options.include_figures:
                 doc_parts.append(ch6_drawings(fig_paths))
 

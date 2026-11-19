@@ -143,10 +143,11 @@ from osdagbridge.core.utils.common import (
 
 from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girder_entries
 from osdagbridge.core.reports.latex_tables import keep_rows_together
+from osdagbridge.core.reports.report_charts import build_ur_figures, ur_figures_tex
 
 if TYPE_CHECKING:
     pass
-def ch5_design_checks(checks_data, bridge) -> str:
+def ch5_design_checks(checks_data, bridge, fig_paths=None) -> str:
     """Chapter 5 — Design Checks.
 
     Parameters
@@ -155,6 +156,9 @@ def ch5_design_checks(checks_data, bridge) -> str:
         Raw checks payload (currently unused; data is sourced from bridge).
     bridge : ReportDataBridge
         Provides input_dict, output_dict, and helper methods.
+    fig_paths : dict, optional
+        Image paths made by the report generator; the UR charts for Section 5.5
+        ('ur_overall', 'ur_girders') are embedded when present.
     """
     girder_entries = get_girder_entries(bridge.input_dict)
     if not girder_entries:
@@ -982,7 +986,12 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         ratio, sf, lim = best
         return ("---", f"{sf:.1f}", f"{lim:.0f}", _ur_522(ratio))
 
+    # Every Table 5.29 row is logged as (label, UR cell) so the Section 5.5 charts
+    # show exactly the numbers the table prints.
+    _ur_log = []
+
     def _row522(label, cells):
+        _ur_log.append((label, cells[-1] if cells else ""))
         c = [x if x else "---" for x in cells]
         return label + r" & " + r" & ".join(c) + r" \\[6pt]" + "\n\\hline"
 
@@ -1006,6 +1015,7 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
 
     def _row522_msg(label, msg):
         # Single message spanning the 4 data columns.
+        _ur_log.append((label, None))   # no UR available for this row
         return label + r" & \multicolumn{4}{c|}{" + msg + r"} \\[6pt]" + "\n\\hline"
 
     # End diaphragm: when configured as Cross Bracing it is designed as bracing
@@ -1071,6 +1081,11 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         _ed_shear_row,
     ]
     t522_content = "\n".join(_t522)
+    _chart_dir = (fig_paths or {}).get("chart_dir")
+    if _chart_dir:      # charts built from the rows above: chart == table
+        _ur_figures = build_ur_figures(_ur_log, bridge.output_dict, bridge.input_dict, _chart_dir)
+    else:               # pre-drawn charts (older report_generator), if any
+        _ur_figures = ur_figures_tex(fig_paths)
 
     return r"""
 \chapter{Design Checks}
@@ -1678,5 +1693,4 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \end{longtable}
 \noindent\textit{Note: UR = Demand / Capacity. All values $\leq 1.0$ indicate passing checks. The governing check for each component is highlighted in the individual design check sections above.}
 
-"""
-
+""" + _ur_figures
