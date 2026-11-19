@@ -239,6 +239,137 @@ def build_ur_figures(ur_log, output_dict, input_dict, chart_dir):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Material quantities (Chapter 7)
+# ─────────────────────────────────────────────────────────────────────────────
+def parse_quantity(v):
+    """Float from a quantity string such as '32.89'; None for 'N.A.', '' or None."""
+    try:
+        return float(str(v).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def steel_quantities(q):
+    """{element: steel weight in MT or None} from the Table 7.1 quantity strings.
+
+    Cross bracing is the sum of its top chord, bottom chord and diagonal rows.
+    End-diaphragm steel is not part of the quantity take-off (no key exists in
+    calculate_material_quantities), so it is reported as None -> "N/A".
+    """
+    parts = [parse_quantity(q.get(k)) for k in
+             ("bracing_top_wt_total", "bracing_bot_wt_total", "bracing_diag_wt_total")]
+    bracing = sum(p for p in parts if p is not None) if any(p is not None for p in parts) else None
+    return {
+        "Girders": parse_quantity(q.get("steel_girders_wt_total")),
+        "Cross\nBracing": bracing,
+        "End\nDiaphragms": None,
+    }
+
+
+def _style_axes(ax):
+    c = styles.CHART
+    ax.tick_params(labelsize=c["font_size"])
+    ax.grid(axis="y", color=styles.hex_("grid"), linewidth=0.6, zorder=0)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+
+
+def quantity_bar_chart(labels, values, path, ylabel, color_key="steel_blue", fmt="{:.2f}"):
+    """Simple bar chart; a value of None keeps its slot and is marked "N/A"."""
+    labels, values = list(labels), list(values)
+    real = [v for v in values if v is not None]
+    if not labels or not real:
+        return None
+    c = styles.CHART
+    fig = Figure(figsize=c["figsize"])
+    ax = fig.subplots()
+    xs = list(range(len(labels)))
+    bars = ax.bar(xs, [v or 0 for v in values], width=c["bar_width"],
+                  color=[styles.hex_(color_key) if v is not None else "none" for v in values], zorder=3)
+    ax.set_xticks(xs)
+    ax.set_xticklabels(labels)
+    top = max(real) if max(real) > 0 else 1.0
+    ax.set_ylim(0, top * 1.18)
+    ax.set_ylabel(ylabel, fontsize=c["font_size"])
+    _style_axes(ax)
+    for b, v in zip(bars, values):
+        x = b.get_x() + b.get_width() / 2
+        if v is None:
+            ax.annotate("N/A", (x, 0), xytext=(0, 4), textcoords="offset points", ha="center",
+                        va="bottom", fontsize=c["font_size"], color="#777777", style="italic")
+        else:
+            ax.annotate(fmt.format(v), (x, v), xytext=(0, 3), textcoords="offset points",
+                        ha="center", va="bottom", fontsize=c["font_size"], fontweight="bold")
+    return _save(fig, path)
+
+
+def concrete_rebar_chart(volume_m3, weight_mt, path):
+    """Concrete volume (m3) and reinforcement weight (MT) as two side-by-side panels.
+
+    The quantities have different units, so each gets its own panel and axis.
+    A shared plot (or twin axes) would stretch both bars to the same height
+    and suggest the two numbers are comparable.
+    """
+    if volume_m3 is None and weight_mt is None:
+        return None
+    c = styles.CHART
+    fig = Figure(figsize=c["figsize"])
+    axes = fig.subplots(1, 2)
+    panels = (
+        (axes[0], volume_m3, "concrete", "Concrete, deck slab", "Volume (m$^3$)", "{:.2f} m$^3$"),
+        (axes[1], weight_mt, "rebar", "Reinforcement steel", "Weight (MT)", "{:.2f} MT"),
+    )
+    for ax, v, color_key, title, ylabel, txt in panels:
+        ax.bar([0], [v or 0], width=0.5, color=styles.hex_(color_key) if v is not None else "none", zorder=3)
+        ax.set_xlim(-0.6, 0.6)
+        ax.set_xticks([])
+        ax.set_ylim(0, (v or 1.0) * 1.25)
+        ax.set_ylabel(ylabel, fontsize=c["font_size"])
+        ax.set_title(title, fontsize=c["font_size"], fontweight="bold")
+        _style_axes(ax)
+        if v is None:
+            ax.annotate("N/A", (0, 0), xytext=(0, 4), textcoords="offset points", ha="center",
+                        va="bottom", fontsize=c["font_size"], color="#777777", style="italic")
+        else:
+            ax.annotate(txt.format(v), (0, v), xytext=(0, 3), textcoords="offset points",
+                        ha="center", va="bottom", fontsize=c["font_size"], fontweight="bold")
+    fig.tight_layout()
+    return _save(fig, path)
+
+
+def build_material_figures(quantities, chart_dir):
+    """Draw the Chapter 7 charts into chart_dir and return their LaTeX.
+
+    Numbers come from the same quantity strings Table 7.1 prints.  Never
+    raises: a problem is logged and yields an empty string.
+    """
+    try:
+        os.makedirs(chart_dir, exist_ok=True)
+        parts = []
+        steel = steel_quantities(quantities)
+        p = quantity_bar_chart(list(steel), list(steel.values()),
+                               os.path.join(chart_dir, "qty_steel.png"), "Structural steel weight (MT)")
+        if p:
+            parts.append(_figure_tex(
+                p, r"Structural steel quantity by element (MT). Cross bracing is the sum of its "
+                   r"top chord, bottom chord and diagonal members. End diaphragm steel is not "
+                   r"included in the quantity take-off (N/A)."))
+        p = concrete_rebar_chart(parse_quantity(quantities.get("concrete_deck_vol_total")),
+                                 parse_quantity(quantities.get("rebar_deck_wt_total")),
+                                 os.path.join(chart_dir, "qty_concrete_rebar.png"))
+        if p:
+            parts.append(_figure_tex(
+                p, r"Deck slab concrete volume (m\textsuperscript{3}) and reinforcement steel weight (MT). "
+                   r"The two panels use different units and scales."))
+        return ("\n\\vspace{1em}\n" + "\n".join(parts)) if parts else ""
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Material chart generation failed")
+        return ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # LaTeX
 # ─────────────────────────────────────────────────────────────────────────────
 def _figure_tex(path, caption):

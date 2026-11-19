@@ -1,4 +1,10 @@
-def ch7_quantities(input_dict):
+from osdagbridge.core.reports.report_charts import build_material_figures
+
+
+def ch7_quantities(input_dict, fig_paths=None):
+    # Charts are drawn from the same quantity strings Table 7.1 prints.
+    _chart_dir = (fig_paths or {}).get("chart_dir")
+    _figures = build_material_figures(input_dict, _chart_dir) if _chart_dir else ""
     return r"""
 \chapter{Material Take-off \& Quantity Summary}
 \label{ch:material-takeoff}
@@ -29,6 +35,4 @@ def ch7_quantities(input_dict):
 6 & Crash Barrier & """ + str(input_dict.get("crash_barrier_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_qty", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_wt_total", "N.A.")) + r""" \\
 \hline
 \end{longtable}
-"""
-
-
+""" + _figures
