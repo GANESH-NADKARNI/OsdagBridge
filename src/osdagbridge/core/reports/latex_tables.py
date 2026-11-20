@@ -70,7 +70,7 @@ def longtable(colspec, caption, header, body, note=None, *, repeat_header=None):
     """
     if repeat_header is None:
         repeat_header = styles.TABLE["repeat_header"]
-    gap = styles.TABLE["row_gap"]
+    gap = "\\rowgap"      # macro defined from styles.TABLE["row_gap"]
     head = _header_row(header)
     head_block = "\\hline\n" + head + " \\\\[" + gap + "]\n\\hline\n"
 
@@ -88,7 +88,7 @@ def longtable(colspec, caption, header, body, note=None, *, repeat_header=None):
     parts.append(body)
     parts.append("\\end{longtable}")
     if note:
-        parts.append("\\noindent\\textit{" + note + "}\\par\\vspace{0.6em}")
+        parts.append("\\noindent\\textit{" + note + "}\\par\\vspace{\\gapNote}")
     return "\n".join(parts) + "\n"
 
 
@@ -101,9 +101,9 @@ def short_table(colspec, caption, header, body, note=None):
     the page it moves to the next page as a whole.  The caption is numbered
     from the same counter as longtable captions.
     """
-    gap = styles.TABLE["row_gap"]
+    gap = "\\rowgap"      # macro defined from styles.TABLE["row_gap"]
     parts = [
-        "\\par\\vspace{0.4em}\\noindent\\begin{minipage}{\\linewidth}",
+        "\\par\\vspace{\\gapTight}\\noindent\\begin{minipage}{\\linewidth}",
         "\\captionof{table}{\\textbf{" + caption + "}}",
         "\\centering",
         "\\begin{tabular}{" + colspec + "}",
@@ -114,6 +114,6 @@ def short_table(colspec, caption, header, body, note=None):
         "\\end{tabular}",
     ]
     if note:   # inside the box, so the note can never be separated from its table
-        parts.append("\\par\\vspace{0.4em}\\raggedright\\textit{" + note + "}")
-    parts.append("\\end{minipage}\\par\\vspace{0.6em}")
+        parts.append("\\par\\vspace{\\gapTight}\\raggedright\\textit{" + note + "}")
+    parts.append("\\end{minipage}\\par\\vspace{\\gapNote}")
     return "\n".join(parts) + "\n"

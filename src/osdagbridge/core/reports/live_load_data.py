@@ -174,5 +174,5 @@ def footpath_args(input_dict):
 def live_load_block(input_dict):
     """Vehicle table + footpath table, ready to drop into Chapter 3."""
     return (vehicle_table(vehicle_rows(input_dict))
-            + "\n\\vspace{1em}\n"
+            + "\n\\vspace{\\gapBlock}\n"
             + footpath_table(*footpath_args(input_dict)))

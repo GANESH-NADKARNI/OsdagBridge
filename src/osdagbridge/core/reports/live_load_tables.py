@@ -58,11 +58,11 @@ def vehicle_table(rows: List[VehicleRow], caption="Live Loads -- Vehicles") -> s
                 + ("Yes" if r.braking_considered else "No") + " & "
                 + (_num(r.braking_value_kn, ",.2f") if r.braking_considered else DASH) + " & "
                 + (_num(r.eccentricity_m, ".2f") if r.braking_considered else DASH)
-                + " \\\\[6pt]\n\\hline\n"
+                + " \\\\[\\rowgap]\n\\hline\n"
             )
     else:
         body = (r"\multicolumn{6}{|c|}{\textit{No vehicle selected in the Loading tab}}"
-                " \\\\[6pt]\n\\hline\n")
+                " \\\\[\\rowgap]\n\\hline\n")
     note = (r"Note: Total loads follow the IRC 6 vehicle definitions used in the analysis "
             r"(1\,t = 9.81\,kN); Class AA uses the standard IRC 6 Cl.~204.1 loads. "
             r"Impact factor per IRC 6 Cl.~208.2 / 208.3 for the vehicle type. "
@@ -71,7 +71,7 @@ def vehicle_table(rows: List[VehicleRow], caption="Live Loads -- Vehicles") -> s
             r"``--'': not applicable or not defined.")
     build = short_table if len(rows) <= MAX_SHORT_ROWS else longtable
     tbl = build(colspec, caption, header, body, note=note)
-    return "\\begingroup\\setlength{\\tabcolsep}{4pt}\n" + tbl + "\\endgroup\n"
+    return "\\begingroup\\setlength{\\tabcolsep}{\\tabcolsepTight}\n" + tbl + "\\endgroup\n"
 
 
 def footpath_table(footpath_option: str, width_m: Optional[float],
@@ -80,7 +80,7 @@ def footpath_table(footpath_option: str, width_m: Optional[float],
     """Footpath live-load table; a one-line note when no footpath is provided."""
     if str(footpath_option).strip().lower() in ("", "none"):
         return (r"\noindent\textit{No footpath is provided; footpath live load "
-                r"is not applicable.}\par\vspace{0.6em}" "\n")
+                r"is not applicable.}\par\vspace{\gapNote}" "\n")
     colspec = r"|L{4.2cm}|C{2.8cm}|C{1.5cm}|L{3.4cm}|"
     header = (r"\textbf{Parameter} & \textbf{Value} & \textbf{Unit} & "
               r"\textbf{Source}")
@@ -93,5 +93,5 @@ def footpath_table(footpath_option: str, width_m: Optional[float],
         ("Footpath live load pressure", _num(pressure_kn_m2, ".2f"), r"kN/m\textsuperscript{2}",
          "IRC 6 Cl. 206.1" if is_auto else "User input"),
     ]
-    body = "".join(f"{a} & {b} & {c} & {d} \\\\[6pt]\n\\hline\n" for a, b, c, d in rows)
+    body = "".join(f"{a} & {b} & {c} & {d} \\\\[\\rowgap]\n\\hline\n" for a, b, c, d in rows)
     return short_table(colspec, caption, header, body)

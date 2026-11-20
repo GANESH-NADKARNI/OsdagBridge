@@ -164,7 +164,7 @@ ELEMENTS = ["Steel Plate\nGirders", "Concrete\nDeck Slab", "Cross\nBracing", "En
 
 
 def parse_ur_cell(cell):
-    """Number inside a formatted UR cell such as '0.94' or '\\textcolor{red}{1.85}'.
+    """Number inside a formatted UR cell such as '0.94' or '\\textcolor{failRed}{1.85}'.
     Returns None for '---', 'N/A' and empty cells."""
     import re
     if not cell:
@@ -362,7 +362,7 @@ def build_material_figures(quantities, chart_dir):
             parts.append(_figure_tex(
                 p, r"Deck slab concrete volume (m\textsuperscript{3}) and reinforcement steel weight (MT). "
                    r"The two panels use different units and scales."))
-        return ("\n\\vspace{1em}\n" + "\n".join(parts)) if parts else ""
+        return ("\n\\vspace{\\gapBlock}\n" + "\n".join(parts)) if parts else ""
     except Exception:
         import logging
         logging.getLogger(__name__).exception("Material chart generation failed")
@@ -395,4 +395,4 @@ def ur_figures_tex(fig_paths):
             r"Governing utilization ratio of each plate girder."))
     if not parts:
         return ""
-    return "\n\\vspace{1em}\n" + "\n".join(parts)
+    return "\n\\vspace{\\gapBlock}\n" + "\n".join(parts)

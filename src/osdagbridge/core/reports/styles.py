@@ -74,6 +74,30 @@ TABLE = {
     "repeat_header":  True,
 }
 
+# Named vertical gaps used with \\vspace in the chapters (\\gapTight, \\gapSmall, ...)
+SPACING = {
+    "gapTight":  "0.4em",
+    "gapNote":   "0.6em",     # below a table note
+    "gapSmall":  "0.5em",
+    "gapMedium": "0.8em",
+    "gapBlock":  "1em",
+}
+
+# Local table-padding variants used by dense tables (\\tabcolsepDense, ...)
+TABLE_PADDING = {
+    "tabcolsepDense":    "3pt",     # Table 4.1 (nine narrow columns)
+    "tabcolsepCompact":  "3.5pt",   # Table 7.1
+    "tabcolsepTight":    "4pt",     # cross bracing / end diaphragm tables
+    "arraystretchDense": "1.25",    # row height of the dense table
+}
+
+# Figure widths used by the Python figure helpers.
+FIGURE = {
+    "default":  r"0.9\textwidth",
+    "full":     r"\textwidth",
+    "analysis": r"0.75\textwidth",
+}
+
 # ═════════════════════════════════════════════════════════════════════════════
 # 4. HEADER / FOOTER
 # ═════════════════════════════════════════════════════════════════════════════
@@ -183,6 +207,15 @@ def _table_layout():
 """ if t["needspace_longtable"] else "")
 
 
+def _style_macros():
+    """LaTeX macros the chapter files use instead of hard-coded values."""
+    lines = [r"% Style macros (see styles.py): chapters use these instead of literal values",
+             r"\newcommand{\rowgap}{" + TABLE["row_gap"] + "}"]
+    for name, value in {**SPACING, **TABLE_PADDING}.items():
+        lines.append("\\newcommand{\\" + name + "}{" + value + "}")
+    return "\n".join(lines) + "\n"
+
+
 def _colors():
     return "\n".join(
         r"\definecolor{" + _latex_name(k) + r"}{HTML}{" + v + r"}"
@@ -282,6 +315,7 @@ def build_preamble(project_name, job_number, report_date, report_version):
         + DOCUMENT["class"] + "}\n"
         + _packages()
         + _table_layout()
+        + _style_macros()
         + "\n" + _colors()
         + _header_footer(header_left, header_right)
         + _COMMANDS
