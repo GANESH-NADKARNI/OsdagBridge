@@ -1691,6 +1691,6 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 \endhead
 """ + t522_content + r"""
 \end{longtable}
-\noindent\textit{Note: UR = Demand / Capacity. All values $\leq 1.0$ indicate passing checks. The governing check for each component is highlighted in the individual design check sections above.}
+\noindent\textit{Note: UR = Demand / Capacity. A value $\leq 1.0$ passes; a value above 1.0 (shown in red) fails the check. The governing check for each component is highlighted in the individual design check sections above.}
 
 """ + _ur_figures

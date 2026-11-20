@@ -26,11 +26,44 @@ def _tex(value):
     return s
 
 
+def _clean_number(val):
+    """Remove binary floating-point noise: 10.274999999999999 -> 10.275.
+    Values with at most ~10 significant digits are returned unchanged."""
+    import re
+    if isinstance(val, float):
+        return float(f"{val:.10g}")
+    if isinstance(val, str) and re.fullmatch(r"-?\d+\.\d{9,}", val.strip()):
+        return f"{float(val):.10g}"
+    return val
+
+
 def _render_value(source_dict, key, unit=""):
-    val = source_dict.get(key)
+    val = _clean_number(source_dict.get(key))
     if val in ("", None):
         return ""
     return _tex(val) + unit
+
+
+def _render_mm(source_dict, key, metres_below):
+    """A girder dimension printed in millimetres.
+
+    The input dictionary stores these dimensions in metres (1.67 for a 1670 mm
+    deep girder) while the table prints "mm".  A value below `metres_below` is
+    therefore converted: no real girder dimension is that small in millimetres
+    (depth >= 300 mm, plate width >= 100 mm, plate thickness >= 6 mm), so the
+    test cannot misread a value that is already in mm.  Non-numeric values are
+    printed unchanged.
+    """
+    val = _clean_number(source_dict.get(key))
+    if val in ("", None):
+        return ""
+    try:
+        mm = float(val)
+    except (TypeError, ValueError):
+        return _tex(val) + " mm"
+    if mm < metres_below:
+        mm *= 1000.0
+    return _tex(f"{round(mm, 3):g}") + " mm"
 
 
 def get_girder_entries(input_dict):

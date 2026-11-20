@@ -7,7 +7,7 @@ from osdagbridge.core.utils.common import (
 )
 from osdagbridge.core.reports.report_utils import _tex, _fig_embed
 from osdagbridge.core.reports import styles
-from osdagbridge.core.reports.latex_tables import longtable
+from osdagbridge.core.reports.latex_tables import MAX_SHORT_ROWS, longtable, short_table
 
 if TYPE_CHECKING:
     from .report_generator import ReportDataBridge
@@ -91,7 +91,8 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
         + _fmt(rxn_summary[lc].get('right_kN'), 2) + " \\\\[\\rowgap]\n\\hline\n"
         for lc in _rxn_rows
     ) or (r"--- & --- & --- \\[\rowgap]" + "\n\\hline\n")
-    _reactions_table = longtable(
+    _build_table = short_table if len(_rxn_rows) <= MAX_SHORT_ROWS else longtable   # short -> never splits
+    _reactions_table = _build_table(
         r"|L{6.0cm}|C{4.0cm}|C{4.0cm}|",
         "Reactions at Supports",
         r"\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}",
@@ -141,6 +142,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \hline
 \endfirsthead
 
+\caption*{\textbf{Table \thetable{} (continued): Summary of Maximum Demands}}\\
 \hline
 \multirow{2}{*}{\makecell{\textbf{Load}\\\textbf{Case/}\\\textbf{Comb.}}}
 & \multicolumn{3}{c|}{\textbf{Bending Moment}}

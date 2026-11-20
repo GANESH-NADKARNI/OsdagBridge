@@ -1,10 +1,14 @@
 from osdagbridge.core.reports.report_charts import build_material_figures
+from osdagbridge.core.reports.report_utils import _tex
+from osdagbridge.core.utils.common import KEY_DECK_CONCRETE_GRADE_BASIC
 
 
 def ch7_quantities(input_dict, fig_paths=None):
     # Charts are drawn from the same quantity strings Table 7.1 prints.
     _chart_dir = (fig_paths or {}).get("chart_dir")
     _figures = build_material_figures(input_dict, _chart_dir) if _chart_dir else ""
+    _grade = _tex(input_dict.get(KEY_DECK_CONCRETE_GRADE_BASIC) or "")
+    _concrete_label = ("Concrete (" + _grade + ") for Deck Slab") if _grade else "Concrete for Deck Slab"
     return r"""
 \chapter{Material Take-off \& Quantity Summary}
 \label{ch:material-takeoff}
@@ -26,7 +30,7 @@ def ch7_quantities(input_dict, fig_paths=None):
 \hline
 2(c) & Cross Bracing - Diagonal Chord & """ + str(input_dict.get("bracing_diag_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("bracing_diag_qty", "N.A.")) + r""" & """ + str(input_dict.get("bracing_diag_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("bracing_diag_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("bracing_diag_wt_total", "N.A.")) + r""" \\
 \hline
-3 & Concrete (M40) for Deck Slab & """ + str(input_dict.get("concrete_deck_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_qty", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_wt_total", "N.A.")) + r""" \\
+3 & """ + _concrete_label + r""" & """ + str(input_dict.get("concrete_deck_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_qty", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("concrete_deck_wt_total", "N.A.")) + r""" \\
 \hline
 4 & Reinforcement Steel (Fe 500) & """ + str(input_dict.get("rebar_deck_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("rebar_deck_qty", "N.A.")) + r""" & """ + str(input_dict.get("rebar_deck_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("rebar_deck_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("rebar_deck_wt_total", "N.A.")) + r""" \\
 \hline

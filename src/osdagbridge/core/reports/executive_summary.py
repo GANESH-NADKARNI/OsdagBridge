@@ -130,6 +130,24 @@ def executive_summary(input_dict, output_dict, fig_paths) -> str:
     gov = _tex(gov_name) if gov_name not in (None, '', 'None') else ''
     ur = _tex(overall_utilization_ratio) if overall_utilization_ratio else ''
 
+    # Key Design Outcomes: one PASS / FAIL line per component, from the same stored results
+    # as the overall status above (never a hard-coded 'pass').
+    def _outcome(label, fail, section):
+        if fail is None:                      # no result stored for this component
+            return label + r": \textit{see Section " + section + "}"
+        verdict = r"\textcolor{failRed}{\textbf{FAIL}}" if fail else r"\textbf{PASS}"
+        return label + ": " + verdict
+
+    _cb_max = _max_member_efficiency(cb_results)
+    _ed_max = _max_member_efficiency(ed_results)
+    outcomes_tex = " \\\\\n".join([
+        _outcome("Girder design",
+                 (bool(failing) or (girder_max_ur is not None and girder_max_ur > 1.0)) if per_girder else None, "5.1"),
+        _outcome("Cross bracing design", None if _cb_max is None else _cb_max > 1.0, "5.3"),
+        _outcome("End diaphragm design", None if _ed_max is None else _ed_max > 1.0, "5.4"),
+        _outcome("Deck design", None if deck_max is None else deck_max > 1.0, "5.2"),
+    ])
+
     # --- Dynamic Table 1: fetch backend-populated labels via exact suffix pattern ---
     # defaults.py populates: KEY_MP_GD_SELECT_GIRDER + '.G{i}' = 'G{i}'
     #                        KEY_MP_GD_MEMBER_ID     + '.G{i}.M1' = 'G{i}M1'
@@ -202,9 +220,9 @@ This section provides a concise summary of the bridge design, key inputs, govern
 \hline
 \textbf{No. of Girders} & """ + (_render_value(input_dict, KEY_TS_NO_OF_GIRDERS)) + r""" \\
 \hline
-\textbf{Girder Spacing} & """ + (_render_value(input_dict, KEY_TS_GIRDER_SPACING)) + r""" \\
+\textbf{Girder Spacing} & """ + (_render_value(input_dict, KEY_TS_GIRDER_SPACING, ' m')) + r""" \\
 \hline
-\textbf{Deck Thickness} & """ + (_render_value(input_dict, KEY_TS_DECK_THICKNESS)) + r""" \\
+\textbf{Deck Thickness} & """ + (_render_value(input_dict, KEY_TS_DECK_THICKNESS, ' mm')) + r""" \\
 \hline
 \textbf{Overall Design Status} & """ + (_tex(overall_design_status)) + r""" \\
 \hline
@@ -230,10 +248,7 @@ This section provides a concise summary of the bridge design, key inputs, govern
 \addcontentsline{toc}{section}{Key Design Outcomes Summary}
 \label{sec:key-outcomes}
 
-\noindent Girder design pass \\
-Cross bracing design pass \\
-End Diaphragm design pass \\
-Deck design pass
+\noindent """ + outcomes_tex + r"""
 
 \section*{Design Assumptions and Limitations}
 \addcontentsline{toc}{section}{Design Assumptions and Limitations}
